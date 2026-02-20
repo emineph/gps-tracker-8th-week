@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filo Yönetim Analizi - Hafta 8 | DFDS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0066CC;
+            --secondary: #FF6B35;
+            --success: #00C896;
+            --warning: #FFB800;
+            --danger: #E63946;
+            --dark: #1a1d29;
+            --darker: #0f1117;
+            --light: #f8f9fa;
+            --border: rgba(255, 255, 255, 0.1);
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--darker);
+            color: var(--light);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            padding: 2.5rem 0;
+            margin-bottom: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            animation: pulse 8s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.2); opacity: 0.6; }
+        }
+
+        header h1 {
+            font-size: 3.5rem;
+            font-weight: 900;
+            text-align: center;
+            letter-spacing: -2px;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        header .subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            opacity: 0.9;
+            font-weight: 300;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Week Selector */
+        .week-selector {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+
+        .week-info {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .current-week {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .week-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 0.3rem;
+        }
+
+        .week-number {
+            font-size: 3rem;
+            font-weight: 900;
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+        }
+
+        .week-date {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .week-navigation {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .week-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .week-btn:hover {
+            background: rgba(102, 126, 234, 0.3);
+            border-color: rgba(102, 126, 234, 0.5);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .week-selector {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .week-info {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .week-navigation {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .week-btn {
+                width: 100%;
+            }
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background: var(--dark);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-3);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.5s ease;
+        }
+
+        .stat-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 2.8rem;
+            font-weight: 900;
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-change {
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--success);
+        }
+
+        .stat-change.negative {
+            color: var(--danger);
+        }
+
+        /* Section */
+        .section {
+            background: var(--dark);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 6px;
+            height: 30px;
+            background: var(--gradient-1);
+            border-radius: 3px;
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        thead th {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1.2rem;
+            text-align: left;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.9);
+            border-bottom: 2px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tbody tr {
+            transition: all 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: scale(1.01);
+        }
+
+        tbody td {
+            padding: 1.2rem;
+            border-bottom: 1px solid var(--border);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .badge-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .badge-warning {
+            background: var(--warning);
+            color: var(--dark);
+        }
+
+        .badge-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* Charts */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-container {
+            background: var(--dark);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        canvas {
+            max-height: 350px;
+        }
+
+        /* Progress Bar */
+        .progress-bar-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50px;
+            height: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--gradient-3);
+            border-radius: 50px;
+            transition: width 1s ease;
+            box-shadow: 0 0 20px rgba(79, 172, 254, 0.5);
+        }
+
+        /* Insights */
+        .insights {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .insight-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .insight-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        }
+
+        .insight-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .insight-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .insight-text {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.5;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 3rem;
+            border-top: 1px solid var(--border);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 2rem;
+            }
+
+            .stat-value {
+                font-size: 2rem;
+            }
+        }
+
+        /* Animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+
+        .animate:nth-child(1) { animation-delay: 0.1s; }
+        .animate:nth-child(2) { animation-delay: 0.2s; }
+        .animate:nth-child(3) { animation-delay: 0.3s; }
+        .animate:nth-child(4) { animation-delay: 0.4s; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚛 GPS Takip Ekranı - Analiz</h1>
+            <p class="subtitle">Hafta 8 - Araç Takip ve GPS İstatistikleri Raporu</p>
+        </header>
+
+        <!-- Hafta Seçici -->
+        <div class="week-selector animate">
+            <div class="week-info">
+                <div class="current-week">
+                    <span class="week-label">Aktif Hafta</span>
+                    <span class="week-number">8</span>
+                </div>
+                <div class="week-date">16 Şubat - 22 Şubat 2026</div>
+            </div>
+            <div class="week-navigation">
+                <button class="week-btn" onclick="window.location.href='https://emineph.github.io/GPS-Tracker-7thWeek/'">← Hafta 7</button>
+                                                                                
+                <button class="week-btn" onclick="alert('Sonraki hafta verileri yükleniyor...')">Hafta 9 →</button>
+            </div>
+        </div>
+
+        <!-- Ana İstatistikler -->
+        <div class="stats-grid">
+            <div class="stat-card animate">
+                <div class="stat-label">Toplam Araç</div>
+                <div class="stat-value">3,705</div>
+                <div class="stat-change">
+                    <span>▲</span> Filo genişlemesi
+                </div>
+            </div>
+            <div class="stat-card animate">
+                <div class="stat-label">GPS Takılı</div>
+                <div class="stat-value">2,798</div>
+                <div class="stat-change">
+                    <span>▲</span> %75.52% kapsama
+                </div>
+            </div>
+            <div class="stat-card animate">
+                <div class="stat-label">Aktif GPS</div>
+                <div class="stat-value">2,527</div>
+                <div class="stat-change">
+                    <span>▲</span> %90.31 aktiflik oranı
+                </div>
+            </div>
+            <div class="stat-card animate">
+                <div class="stat-label">GPS Pasif</div>
+                <div class="stat-value">271</div>
+                <div class="stat-change negative">
+                    <span>▼</span> İyileştirme gerekli
+                </div>
+            </div>
+        </div>
+
+        <!-- Grafikler -->
+        <div class="charts-grid">
+            <div class="chart-container animate">
+                <div class="chart-title">📊 Araç Tipi Dağılımı</div>
+                <canvas id="vehicleTypeChart"></canvas>
+            </div>
+            <div class="chart-container animate">
+                <div class="chart-title">🌍 Ülkelere Göre Treyler Dağılımı (Top 5)</div>
+                <canvas id="countryChart"></canvas>
+            </div>
+        </div>
+
+        <!-- GPS Performans Analizi -->
+        <div class="section animate">
+            <h2 class="section-title">GPS Performans Metrikleri - Hafta 8</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Kategori</th>
+                            <th>Toplam Araç</th>
+                            <th>GPS Takılı</th>
+                            <th>Takılı %</th>
+                            <th>GPS Aktif</th>
+                            <th>GPS Pasif</th>
+                            <th>Pasif GPS %</th>
+                            <th>Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge badge-primary">TREYLER</span></td>
+                            <td>2,466</td>
+                            <td>2,445</td>
+                            <td>99.15%</td>
+                            <td>2,222</td>
+                            <td>223</td>
+                            <td>9%</td>
+                            <td><span class="badge badge-success">Mükemmel</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-primary">ŞASİ</span></td>
+                            <td>324</td>
+                            <td>324</td>
+                            <td>100%</td>
+                            <td>289</td>
+                            <td>35</td>
+                            <td>11%</td>
+                            <td><span class="badge badge-success">Mükemmel</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-primary">KONTEYNER</span></td>
+                            <td>558</td>
+                            <td>14</td>
+                            <td>2.51%</td>
+                            <td>4</td>
+                            <td>10</td>
+                            <td>71%</td>
+                            <td><span class="badge badge-warning">İyileştir</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-primary">SWAP BODY</span></td>
+                            <td>357</td>
+                            <td>15</td>
+                            <td>4.20%</td>
+                            <td>12</td>
+                            <td>43/td>
+                            <td>20%</td>
+                            <td><span class="badge badge-warning">İyileştir</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="margin-top: 2rem;">
+                <div style="margin-bottom: 0.5rem; display: flex; justify-content: space-between;">
+                    <span style="font-weight: 600;">Genel GPS Aktiflik Oranı</span>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.1rem; color: var(--success);">90.31%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: 87.1%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ülke Bazlı Analiz -->
+        <div class="section animate">
+            <h2 class="section-title">Hafta 8 - Treyler Ülke Bazlı Dağılım</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ülke</th>
+                            <th>İş Emirli Araç</th>
+                            <th>İş Emirsiz Araç</th>
+                            <th>Genel Toplam</th>
+                            <th>İş Emri Oranı</th>
+                        </tr>
+                    </thead>
+                    <tbody id="countryTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Araç Tipi Detayları -->
+        <div class="section animate">
+            <h2 class="section-title">Hafta 8 - Araç Tipi Detay Analizi</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Araç Türü</th>
+                            <th>Ülke</th>
+                            <th>İş Emirli Araç</th>
+                            <th>İş Emirsiz Araç</th>
+                            <th>Genel Toplam</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge badge-primary">KONTEYNER</span></td>
+                            <td>TR </td>
+                            <td>0</td>
+                            <td>10</td>
+                            <td>10</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-primary">SWAP BODY</span></td>
+                            <td>DE</td>
+                            <td>1</td>
+                            <td>0</td>
+                            <td>1</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-primary">SWAP BODY</span></td>
+                            <td>TR</td>
+                            <td>1</td>
+                            <td>1</td>
+                            <td>2</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-primary">ŞASİ</span></td>
+                            <td>BE</td>
+                            <td>0</td>
+                            <td>3</td>
+                            <td>3</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-primary">ŞASİ</span></td>
+                            <td>DE</td>
+                            <td>0</td>
+                            <td>1</td>
+                            <td>1</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-primary">ŞASİ</span></td>
+                            <td>ES</td>
+                            <td>2</td>
+                            <td>0</td>
+                            <td>2</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-primary">ŞASİ</span></td>
+                            <td>FR</td>
+                            <td>0</td>
+                            <td>2</td>
+                            <td>2</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-primary">ŞASİ</span></td>
+                            <td>GB</td>
+                            <td>0</td>
+                            <td>1</td>
+                            <td>1</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-primary">ŞASİ</span></td>
+                            <td>IT</td>
+                            <td>1</td>
+                            <td>0</td>
+                            <td>1</td>
+                        </tr>
+                       <tr>
+                            <td><span class="badge badge-primary">ŞASİ</span></td>
+                            <td>TN</td>
+                            <td>0</td>
+                            <td>1</td>
+                            <td>1</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-primary">ŞASİ</span></td>
+                            <td>TR</td>
+                            <td>7</td>
+                            <td>17</td>
+                            <td>24</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Stratejik İçgörüler -->
+        <div class="section animate">
+            <h2 class="section-title">📈 Hafta 8 - Stratejik İçgörüler ve Öneriler</h2>
+            <div class="insights">
+                <div class="insight-card">
+                    <div class="insight-icon">📅</div>
+                    <div class="insight-title">Haftalık İlerleme</div>
+                    <div class="insight-text">
+                        Hafta 8 verileri toplandı. Bu hafta aktif olan araç oranı %90.31'dir.
+                    </div>
+                </div>
+                <div class="insight-card">
+                    <div class="insight-icon">🔧</div>
+                    <div class="insight-title">Pasif GPS Sorunları</div>
+                    <div class="insight-text">
+                        271 araçta GPS pasif durumda. Bakım ve onarım için öncelik verilmeli, %90.31'den %95'e çıkarılabilir.
+                    </div>
+                </div>
+                <div class="insight-card">
+                    <div class="insight-icon">🌍</div>
+                    <div class="insight-title">Coğrafi Dağılım</div>
+                    <div class="insight-text">
+                        TR (121), DE (77), FR (18) en yüksek treyler sayısına sahip. Bölgesel bakım merkezleri güçlendirilmeli.
+                    </div>
+                </div>
+                <div class="insight-card">
+                    <div class="insight-icon">⚡</div>
+                    <div class="insight-title">İş Emri Verimliliği</div>
+                    <div class="insight-text">
+                        Toplam 223 treylerin 182'i iş emirli (%81.61). Rotasyon optimizasyonu ile %90'e çıkarılabilir.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>© 2026 DFDS Filo Yönetim Sistemi | Hafta 8 Raporu (16-22 Şubat 2026) | Son güncelleme: 20 Şubat 2026</p>
+        </footer>
+    </div>
+
+    <script>
+        // Chart.js Global Config
+        Chart.defaults.color = 'rgba(255, 255, 255, 0.8)';
+        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+        Chart.defaults.font.family = 'Outfit';
+
+        // Vehicle Type Chart
+        const vehicleTypeCtx = document.getElementById('vehicleTypeChart').getContext('2d');
+        new Chart(vehicleTypeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['TREYLER', 'KONTEYNER', 'SWAP BODY', 'ŞASİ'],
+                datasets: [{
+                    data: [2531, 558, 357, 324],
+                    backgroundColor: [
+                        'rgba(102, 126, 234, 0.8)',
+                        'rgba(246, 147, 251, 0.8)',
+                        'rgba(79, 172, 254, 0.8)',
+                        'rgba(255, 184, 0, 0.8)'
+                    ],
+                    borderWidth: 3,
+                    borderColor: 'rgba(26, 29, 41, 1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            font: {
+                                size: 13,
+                                weight: '600'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(26, 29, 41, 0.95)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                let value = context.parsed || 0;
+                                let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                let percentage = ((value / total) * 100).toFixed(1);
+                                return label + ': ' + value.toLocaleString() + ' (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Country Chart
+        const countryData = [
+            {ulke: 'DE', toplam: 112},
+            {ulke: 'TR', toplam: 76},
+            {ulke: 'NL', toplam: 19},
+            {ulke: 'FR', toplam: 14},
+            {ulke: 'GB', toplam: 7}
+        ];
+
+        const countryCtx = document.getElementById('countryChart').getContext('2d');
+        new Chart(countryCtx, {
+            type: 'bar',
+            data: {
+                labels: countryData.map(d => d.ulke),
+                datasets: [{
+                    label: 'Treyler Sayısı',
+                    data: countryData.map(d => d.toplam),
+                    backgroundColor: 'rgba(79, 172, 254, 0.8)',
+                    borderColor: 'rgba(79, 172, 254, 1)',
+                    borderWidth: 2,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(26, 29, 41, 0.95)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.05)'
+                        },
+                        ticks: {
+                            font: {
+                                size: 12,
+                                weight: '600'
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 13,
+                                weight: '600'
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Populate Country Table
+        const allCountryData = [
+            {ulke: 'AT', is_emirli: 73, is_emirsiz: 3, toplam: 76},
+            {ulke: 'BE', is_emirli: 91, is_emirsiz: 21, toplam: 112},
+            {ulke: 'DE', is_emirli: 18, is_emirsiz: 1, toplam: 19},
+            {ulke: 'ES', is_emirli: 5, is_emirsiz: 9, toplam: 14},
+            {ulke: 'FR', is_emirli: 5, is_emirsiz: 1, toplam: 6},
+            {ulke: 'GB', is_emirli: 4, is_emirsiz: 1, toplam: 5},
+            {ulke: 'HU', is_emirli: 2, is_emirsiz: 1, toplam: 3},
+            {ulke: 'IT', is_emirli: 3, is_emirsiz: 0, toplam: 3},
+            {ulke: 'NL', is_emirli: 5, is_emirsiz: 9, toplam: 14},
+            {ulke: 'RO', is_emirli: 5, is_emirsiz: 1, toplam: 6},
+            {ulke: 'SI', is_emirli: 4, is_emirsiz: 1, toplam: 5},
+            {ulke: 'TR', is_emirli: 2, is_emirsiz: 1, toplam: 3},
+            {ulke: 'CH', is_emirli: 3, is_emirsiz: 0, toplam: 3},
+           
+        ];
+
+        const countryFlags = {
+            'TR': '🇹🇷', 'DE': '🇩🇪', 'IT': '🇮🇹', 'FR': '🇫🇷', 'GR': '🇬🇷',
+            'BE': '🇧🇪', 'BG': '🇧🇬', 'NL': '🇳🇱', 'CH': '🇨🇭', 'ES': '🇪🇸'
+        };
+
+        const tableBody = document.getElementById('countryTableBody');
+        allCountryData.forEach(country => {
+            const ratio = ((country.is_emirli / country.toplam) * 100).toFixed(1);
+            const row = `
+                <tr>
+                    <td>${countryFlags[country.ulke] || ''} ${country.ulke}</td>
+                    <td>${country.is_emirli}</td>
+                    <td>${country.is_emirsiz}</td>
+                    <td><strong>${country.toplam}</strong></td>
+                    <td>
+                        <span class="badge ${ratio >= 70 ? 'badge-success' : ratio >= 40 ? 'badge-warning' : 'badge-danger'}">
+                            ${ratio}%
+                        </span>
+                    </td>
+                </tr>
+            `;
+            tableBody.innerHTML += row;
+        });
+
+        // Animate progress bar on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.querySelector('.progress-bar').style.width = '87.1%';
+            }, 500);
+        });
+    </script>
+</body>
+</html>
